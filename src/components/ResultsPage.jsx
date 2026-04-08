@@ -16,10 +16,33 @@ function ProgressBar({ label, value }) {
 }
 
 export default function ResultsPage() {
-  const { scores, recommendedCareers } = useAppContext()
+  const { scores, recommendedCareers, resultSubmittedAt, isCatalogLoading, catalogError } =
+    useAppContext()
   const navigate = useNavigate()
 
   const hasResults = scores && scores.length > 0
+
+  if (isCatalogLoading) {
+    return (
+      <div className="page">
+        <div className="card">
+          <h2>Loading results</h2>
+          <p>Checking the latest assessment data from the backend.</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (catalogError && !hasResults) {
+    return (
+      <div className="page">
+        <div className="card">
+          <h2>Unable to load results</h2>
+          <p>{catalogError}</p>
+        </div>
+      </div>
+    )
+  }
 
   if (!hasResults) {
     return (
@@ -42,14 +65,19 @@ export default function ResultsPage() {
           <div>
             <h2>Your career profile</h2>
             <p>These scores show how strongly you lean towards each strength area.</p>
+            {resultSubmittedAt ? (
+              <p className="helper-text">
+                Latest submission: {new Date(resultSubmittedAt).toLocaleString()}
+              </p>
+            ) : null}
           </div>
         </div>
 
         <section className="results-section">
           <h3>Score visualisation</h3>
           <div className="progress-grid">
-            {scores.map((s) => (
-              <ProgressBar key={s.category} label={s.category} value={s.score} />
+            {scores.map((score) => (
+              <ProgressBar key={score.category} label={score.category} value={score.score} />
             ))}
           </div>
         </section>
@@ -69,9 +97,9 @@ export default function ResultsPage() {
                   <p className="career-desc">{career.description}</p>
                   <p className="career-tags">
                     Best for:{' '}
-                    {career.bestFor.map((b) => (
-                      <span key={b} className="pill">
-                        {b}
+                    {career.bestFor.map((bestFit) => (
+                      <span key={bestFit} className="pill">
+                        {bestFit}
                       </span>
                     ))}
                   </p>
@@ -98,4 +126,3 @@ export default function ResultsPage() {
     </div>
   )
 }
-

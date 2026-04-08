@@ -16,17 +16,30 @@ function Field({ label, type = 'text', value, onChange, required = false }) {
   )
 }
 
+function RoleButton({ value, label, selectedRole, onClick }) {
+  return (
+    <button
+      type="button"
+      className={selectedRole === value ? 'active' : ''}
+      onClick={() => onClick(value)}
+    >
+      {label}
+    </button>
+  )
+}
+
 export default function AuthPage() {
-  const { login } = useAppContext()
+  const { login, signup, isAuthLoading } = useAppContext()
   const navigate = useNavigate()
   const [mode, setMode] = useState('login')
+  const [selectedRole, setSelectedRole] = useState('student')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
     setError('')
 
@@ -36,6 +49,10 @@ export default function AuthPage() {
     }
 
     if (mode === 'signup') {
+      if (selectedRole !== 'student') {
+        setError('Admin accounts must be created in the backend. Please log in with an admin account.')
+        return
+      }
       if (!name) {
         setError('Please enter your name.')
         return
@@ -50,8 +67,19 @@ export default function AuthPage() {
       }
     }
 
-    login({ name: name || 'Student', email })
-    navigate('/dashboard')
+    try {
+      let authenticatedUser
+
+      if (mode === 'signup') {
+        authenticatedUser = await signup({ name: name || 'Student', email, password })
+      } else {
+        authenticatedUser = await login({ email, password, role: selectedRole })
+      }
+
+      navigate(authenticatedUser.role === 'admin' ? '/admin' : '/dashboard')
+    } catch (submitError) {
+      setError(submitError.message)
+    }
   }
 
   return (
@@ -68,7 +96,7 @@ export default function AuthPage() {
           <div className="auth-content">
             <div className="auth-header">
               <h1>Career Compass</h1>
-              <p>Discover careers that match your strengths and personality.</p>
+              <p>Login as a student or admin to access the right workspace.</p>
             </div>
 
             <div className="auth-toggle">
@@ -82,10 +110,28 @@ export default function AuthPage() {
               <button
                 type="button"
                 className={mode === 'signup' ? 'active' : ''}
-                onClick={() => setMode('signup')}
+                onClick={() => {
+                  setMode('signup')
+                  setSelectedRole('student')
+                }}
               >
                 Sign up
               </button>
+            </div>
+
+            <div className="auth-toggle">
+              <RoleButton
+                value="student"
+                label="Student"
+                selectedRole={selectedRole}
+                onClick={setSelectedRole}
+              />
+              <RoleButton
+                value="admin"
+                label="Admin"
+                selectedRole={selectedRole}
+                onClick={setSelectedRole}
+              />
             </div>
 
             <form className="auth-form" onSubmit={handleSubmit} noValidate>
@@ -112,12 +158,17 @@ export default function AuthPage() {
 
               {error && <p className="error-text">{error}</p>}
 
-              <button type="submit" className="primary-btn">
-                {mode === 'login' ? 'Login' : 'Create account'}
+              <button type="submit" className="primary-btn" disabled={isAuthLoading}>
+                {isAuthLoading
+                  ? 'Please wait...'
+                  : mode === 'login'
+                    ? `Login as ${selectedRole}`
+                    : 'Create student account'}
               </button>
 
               <p className="helper-text">
-                This is a front-end demo only. Your details are stored securely in your browser.
+                Students can sign up here. Admin accounts must already exist in the backend before
+                logging in.
               </p>
             </form>
           </div>
@@ -126,4 +177,3 @@ export default function AuthPage() {
     </div>
   )
 }
-

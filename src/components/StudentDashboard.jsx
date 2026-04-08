@@ -2,10 +2,33 @@ import { useNavigate } from 'react-router-dom'
 import { useAppContext } from '../context/AppContext.jsx'
 
 export default function StudentDashboard() {
-  const { user, scores, recommendedCareers } = useAppContext()
+  const { user, scores, recommendedCareers, resultSubmittedAt, isCatalogLoading, catalogError } =
+    useAppContext()
   const navigate = useNavigate()
 
   const hasResults = scores && scores.length > 0
+
+  if (isCatalogLoading) {
+    return (
+      <div className="page">
+        <div className="card">
+          <h2>Loading dashboard</h2>
+          <p>Fetching your questions, careers, and latest results from the backend.</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (catalogError && !user) {
+    return (
+      <div className="page">
+        <div className="card">
+          <h2>Backend connection needed</h2>
+          <p>{catalogError}</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="page">
@@ -35,11 +58,7 @@ export default function StudentDashboard() {
               Answer a short set of questions to understand your strengths, interests, and preferred
               working style.
             </p>
-            <button
-              type="button"
-              className="primary-btn"
-              onClick={() => navigate('/assessment')}
-            >
+            <button type="button" className="primary-btn" onClick={() => navigate('/assessment')}>
               Start / continue assessment
             </button>
           </section>
@@ -52,6 +71,11 @@ export default function StudentDashboard() {
                   You have completed an assessment. View your score visualisation and personalised
                   career matches.
                 </p>
+                {resultSubmittedAt ? (
+                  <p className="helper-text">
+                    Latest submission: {new Date(resultSubmittedAt).toLocaleString()}
+                  </p>
+                ) : null}
                 <button
                   type="button"
                   className="secondary-btn"
@@ -69,10 +93,10 @@ export default function StudentDashboard() {
             <h3>Recommended careers</h3>
             {hasResults && recommendedCareers && recommendedCareers.length > 0 ? (
               <ul className="simple-list">
-                {recommendedCareers.map((c) => (
-                  <li key={c.id}>
-                    <strong>{c.name}</strong>
-                    <span className="muted"> – {c.description}</span>
+                {recommendedCareers.map((career) => (
+                  <li key={career.id}>
+                    <strong>{career.name}</strong>
+                    <span className="muted"> - {career.description}</span>
                   </li>
                 ))}
               </ul>
@@ -88,4 +112,3 @@ export default function StudentDashboard() {
     </div>
   )
 }
-
